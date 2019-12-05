@@ -43,59 +43,73 @@ function findShortestManhattanDistance(a, b) {
   */
   let aPositions = getWirePositions(a)
   let bPositions = getWirePositions(b)
-  console.log('positions', bPositions)
+  // console.log('positions', bPositions)
   let intersections = getIntersections(aPositions, bPositions)
   let sorted = intersections.sort(sortBy(1))
-  return sorted[1]
+  return sorted[0][1]
 }
 
 function getWirePositions(wire) {
-  let result = new Map()
+  // return wire.reduce((positions, [move, distance]) => {}, new Map())
+  let positions = new Map()
   let current = [0, 0]
-  let previous = current
   for (let [move, distance] of wire) {
-    current = traceWire(current, move, distance)
-    let [x, y] = previous
-    let [xNew, yNew] = current
-
-    result.set(`${x}:${y}`, Math.abs(x) + Math.abs(y))
-    previous = current
+    current = traceWire(positions, current, move, distance)
   }
-  return result
+  return positions
 }
 
-function traceWire([x, y], move, distance) {
-  // NOOOOOOOPPEEEE
-  // You have to get every position ON THE WAY, not just the start and end
+function traceWire(positions, current, move, distance) {
+  let [x, y] = current
+  let cursor = distance
   switch (move) {
     case UP:
+      while (cursor--) {
+        addPosition(positions, x, y + cursor)
+      }
       return [x, y + distance]
     case DOWN:
+      while (cursor--) {
+        addPosition(positions, x, y - cursor)
+      }
       return [x, y - distance]
     case RIGHT:
+      while (cursor--) {
+        addPosition(positions, x + cursor, y)
+      }
       return [x + distance, y]
     case LEFT:
+      while (cursor--) {
+        addPosition(positions, x - cursor, y)
+      }
       return [x - distance, y]
   }
 }
 
+function addPosition(positions, x, y) {
+  if (x === 0 && y === 0) return
+  positions.set(`${x}:${y}`, Math.abs(x) + Math.abs(y))
+}
+
 function getIntersections(aPositions, bPositions) {
-  return Array.from(aPositions.entries()).reduce(
+  let intersections = Array.from(aPositions.entries()).reduce(
     (list, [position, distance]) => {
-      console.log('checking', position, bPositions.has(position))
-      if (bPositions.has(position)) list.push([position, distance])
+      // console.log('checking', position, bPositions.has(position))
+      if (bPositions.has(position) && !list.has(position))
+        list.set(position, distance)
       return list
     },
-    []
+    new Map()
   )
+  return Array.from(intersections.entries())
 }
 
 function sortBy(field) {
   return function(a, b) {
     if (a[field] > b[field]) {
-      return -1
-    } else if (a[field] < b[field]) {
       return 1
+    } else if (a[field] < b[field]) {
+      return -1
     }
     return 0
   }
@@ -103,7 +117,20 @@ function sortBy(field) {
 
 /* Tests */
 
-// test(result, expected)
+test(
+  run_a(
+    prepareInput(`R75,D30,R83,U83,L12,D49,R71,U7,L72
+U62,R66,U55,R34,D71,R55,D58,R83`)
+  ),
+  159
+)
+test(
+  run_b(
+    prepareInput(`R75,D30,R83,U83,L12,D49,R71,U7,L72
+U62,R66,U55,R34,D71,R55,D58,R83`)
+  ),
+  610
+)
 
 /* Results */
 
