@@ -14,44 +14,58 @@ const prepareInput = rawInput =>
 
 const input = prepareInput(readInput())
 
+/*
+  Find all the points the intersections
+
+  ...........
+  .+-----+...
+  .|.....|...
+  .|..+--X-+.
+  .|..|..|.|.
+  .|.-X--+.|.
+  .|..|....|.
+  .|.......|.
+  .o-------+.
+  ...........
+
+  An intersections is any grid-space that both wires touch
+  positions are a map of X:Y -> { DISTANCE, WIRELENGTH } for easy lookup
+*/
+
 function run_a(input) {
   let [a, b] = input
   return findShortestManhattanDistance(a, b)
 }
 
 function run_b(input) {
-  return
+  return findShortestIntersectionByLength(...input)
 }
 
 function findShortestManhattanDistance(a, b) {
-  /*
-    Find all the points the intersections
-
-    ...........
-    .+-----+...
-    .|.....|...
-    .|..+--X-+.
-    .|..|..|.|.
-    .|.-X--+.|.
-    .|..|....|.
-    .|.......|.
-    .o-------+.
-    ...........
-
-    An intersections is any grid-space that both wires touch
-    positions are a map of X:Y -> DISTANCE for easy lookup
-  */
   let aPositions = getWirePositions(a)
   let bPositions = getWirePositions(b)
   // console.log('positions', bPositions)
   let intersections = getIntersections(aPositions, bPositions)
-  let sorted = intersections.sort(sortBy(1))
-  return sorted[0][1]
+  let sorted = intersections.sort(sortBy('distance'))
+  return sorted[0].distance
+}
+
+function findShortestIntersectionByLength(a, b) {
+  let aPositions = getWirePositions(a)
+  let bPositions = getWirePositions(b)
+  // console.log('positions', bPositions)
+  let intersections = getIntersections(aPositions, bPositions)
+  let sorted = intersections.sort(sortBy('wireLength'))
+  return sorted[0].wireLength
 }
 
 function getWirePositions(wire) {
-  // return wire.reduce((positions, [move, distance]) => {}, new Map())
   let positions = new Map()
+  // Steps must be tracked independently of size, since size looks up positions
+  // An alternative would be to store each instance of a position
+  // But I don't see any value in that for this puzzle
+  // Since we only need the lookup either distance or 1st length
+  positions.steps = 0
   let current = [0, 0]
   for (let [move, distance] of wire) {
     current = traceWire(positions, current, move, distance)
@@ -61,25 +75,25 @@ function getWirePositions(wire) {
 
 function traceWire(positions, current, move, distance) {
   let [x, y] = current
-  let cursor = distance
+  let cursor = 0
   switch (move) {
     case UP:
-      while (cursor--) {
+      while (cursor++ < distance) {
         addPosition(positions, x, y + cursor)
       }
       return [x, y + distance]
     case DOWN:
-      while (cursor--) {
+      while (cursor++ < distance) {
         addPosition(positions, x, y - cursor)
       }
       return [x, y - distance]
     case RIGHT:
-      while (cursor--) {
+      while (cursor++ < distance) {
         addPosition(positions, x + cursor, y)
       }
       return [x + distance, y]
     case LEFT:
-      while (cursor--) {
+      while (cursor++ < distance) {
         addPosition(positions, x - cursor, y)
       }
       return [x - distance, y]
@@ -88,20 +102,31 @@ function traceWire(positions, current, move, distance) {
 
 function addPosition(positions, x, y) {
   if (x === 0 && y === 0) return
-  positions.set(`${x}:${y}`, Math.abs(x) + Math.abs(y))
+  positions.steps++
+  let position = `${x}:${y}`
+  let previous = positions.get(position)
+  positions.set(position, {
+    distance: Math.abs(x) + Math.abs(y),
+    wireLength: previous ? previous.wireLength : positions.steps
+  })
 }
 
 function getIntersections(aPositions, bPositions) {
   let intersections = Array.from(aPositions.entries()).reduce(
-    (list, [position, distance]) => {
+    (list, [position, { distance, wireLength }]) => {
       // console.log('checking', position, bPositions.has(position))
-      if (bPositions.has(position) && !list.has(position))
-        list.set(position, distance)
+      if (bPositions.has(position) && !list.has(position)) {
+        list.set(position, {
+          position,
+          distance,
+          wireLength: wireLength + bPositions.get(position).wireLength
+        })
+      }
       return list
     },
     new Map()
   )
-  return Array.from(intersections.entries())
+  return Array.from(intersections.values())
 }
 
 function sortBy(field) {
@@ -130,6 +155,13 @@ test(
 U62,R66,U55,R34,D71,R55,D58,R83`)
   ),
   610
+)
+test(
+  run_b(
+    prepareInput(`R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51
+U98,R91,D20,R16,D67,R40,U7,R15,U6,R7`)
+  ),
+  410
 )
 
 /* Results */
