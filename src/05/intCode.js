@@ -6,6 +6,10 @@ const OP_ADD = 1
 const OP_MULTIPLY = 2
 const OP_INPUT = 3
 const OP_OUTPUT = 4
+const OP_JUMP_TRUE = 5
+const OP_JUMP_FALSE = 6
+const OP_LESS_THAN = 7
+const OP_GREATER_THAN = 8
 const OP_DONE = 99
 const HALT = -1
 
@@ -33,17 +37,16 @@ function assignNounVerb(intCode, noun, verb) {
 
 function runIntcode(intCode) {
   // console.log('init', read(intCode, 223))
-  let result = 0
   let cursor = 0
-  while (result !== HALT) {
-    result = processPosition(intCode, cursor)
-    cursor += result
+  while (cursor !== HALT) {
+    cursor = processPosition(intCode, cursor)
   }
-  return result
+  return cursor
 }
 
 function processPosition(intCode, position) {
   let [code, ...modes] = getInstruction(intCode, position)
+  // console.log('processing', code)
   switch (code) {
     case OP_ADD:
       return add(intCode, position, modes)
@@ -53,6 +56,14 @@ function processPosition(intCode, position) {
       return input(intCode, position, modes)
     case OP_OUTPUT:
       return output(intCode, position, modes)
+    case OP_JUMP_TRUE:
+      return jumpIfTrue(intCode, position, modes)
+    case OP_JUMP_FALSE:
+      return jumpIfFalse(intCode, position, modes)
+    case OP_LESS_THAN:
+      return lessThan(intCode, position, modes)
+    case OP_GREATER_THAN:
+      return equalTo(intCode, position, modes)
     case OP_DONE:
       return HALT
     default:
@@ -67,7 +78,7 @@ function add(intCode, position, modes) {
   const target = read(intCode, position + 3)
   // console.log('adding', { target, a, b })
   write(intCode, target, a + b)
-  return 4
+  return position + 4
 }
 
 function multiply(intCode, position, modes) {
@@ -75,16 +86,16 @@ function multiply(intCode, position, modes) {
   const target = read(intCode, position + 3)
   // console.log('multiply', { target, a, b })
   write(intCode, target, a * b)
-  return 4
+  return position + 4
 }
 
 function input(intCode, position, modes) {
   const target = read(intCode, position + 1)
   let val = intCode.input()
-  console.log('input', { target, input: val, modes })
+  // console.log('input', { target, input: val, modes })
   write(intCode, target, val)
   // console.log('input done', target, read(intCode, target))
-  return 2
+  return position + 2
 }
 
 function output(intCode, position, modes) {
@@ -95,7 +106,36 @@ function output(intCode, position, modes) {
   //   modes
   // })
   intCode.output(target, position)
-  return 2
+  return position + 2
+}
+
+function jumpIfTrue(intCode, position, modes) {
+  return jumpIf(intCode, position, modes, v => v !== 0)
+}
+
+function jumpIfFalse(intCode, position, modes) {
+  return jumpIf(intCode, position, modes, v => v === 0)
+}
+
+function jumpIf(intCode, position, modes, predicate) {
+  const [val, target] = getParams(intCode, position, 2, modes)
+  return predicate(val) ? target : position + 3
+}
+
+function lessThan(intCode, position, modes) {
+  return writeIf(intCode, position, modes, (a, b) => a < b)
+}
+
+function equalTo(intCode, position, modes) {
+  return writeIf(intCode, position, modes, (a, b) => a === b)
+}
+
+function writeIf(intCode, position, modes, predicate) {
+  const [a, b] = getParams(intCode, position, 2, modes)
+  const target = read(intCode, position + 3)
+  // console.log('iffing', a, b, target, predicate(a, b))
+  write(intCode, target, predicate(a, b) ? 1 : 0)
+  return position + 4
 }
 
 function read(intCode, position) {
@@ -114,6 +154,7 @@ function getParams(intCode, position, ops, modes) {
 
 function getInstruction(intCode, position) {
   let val = read(intCode, position)
+  // console.log('instr', val, position)
   return [
     // Modulo-100 will return the value in the ten and one position
     val % 100,

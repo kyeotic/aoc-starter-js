@@ -5,10 +5,10 @@ const prepareInput = rawInput => rawInput.split(',').map(parseFloat)
 
 const input = prepareInput(readInput())
 
-function run_a(input) {
+function run(input, inputVal) {
   const outputs = []
   let intcode = newIntCode(input, {
-    input: () => 1,
+    input: () => inputVal,
     output: (val, position) => {
       console.log('output', val, position)
       outputs.push(val)
@@ -23,11 +23,15 @@ function run_a(input) {
   return lastOutput
 }
 
-function run_b(input) {
-  return
+function run_a(input) {
+  return run(input, 1)
 }
 
-function run(input) {
+function run_b(input) {
+  return run(input, 5)
+}
+
+function run_input(input) {
   let intCode = newIntCode(input)
   runIntcode(intCode)
   return intCode.memory
@@ -36,9 +40,11 @@ function run(input) {
 /* Tests */
 
 // test(result, expected)
-// test(run([1002, 4, 3, 4, 33]), [1002, 4, 3, 4, 99])
-// test(run([1, 0, 0, 0, 99]), [2, 0, 0, 0, 99])
-// test(run([1, 1, 1, 4, 99, 5, 6, 0, 99]), [30, 1, 1, 4, 2, 5, 6, 0, 99])
+test(run_input([1002, 4, 3, 4, 33]), [1002, 4, 3, 4, 99])
+test(run_input([1, 0, 0, 0, 99]), [2, 0, 0, 0, 99])
+test(run_input([1, 1, 1, 4, 99, 5, 6, 0, 99]), [30, 1, 1, 4, 2, 5, 6, 0, 99])
+// test(run_a(input), 13346482)
+test(run([3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], 4), 0)
 
 /* Results */
 
