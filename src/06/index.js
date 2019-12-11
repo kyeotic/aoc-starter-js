@@ -6,13 +6,10 @@ const input = prepareInput(readInput())
 
 function run_a(input) {
   return getOrbitChecksum(createOrbitGraph(input))
-
-  // create hash-lookup of orbits
-  // Map(obj, { parent, orbits, children })
 }
 
 function run_b(input) {
-  return plotOrbitalTransfer(createOrbitGraph(input), 'YOU', 'SAN').length
+  return plotOrbitalTransfer(createOrbitGraph(input), 'YOU', 'SAN')
 }
 
 function getOrbitChecksum(graph) {
@@ -31,23 +28,34 @@ function plotOrbitalTransfer(graph, self, target) {
   let end = graph.get(graph.get(target).parent)
   let a = start
   let b = end
-  console.log('plot', start, end)
+  // console.log('plot', start, end)
   while (true) {
     walkA.set(a.self, a)
     walkB.set(b.self, b)
     if (walkB.has(a.self) || walkA.has(b.self)) break
-    a = graph.get(a.parent)
-    b = graph.get(b.parent)
-
-    break
+    a = traceUp(graph, a)
+    b = traceUp(graph, b)
   }
-  return []
+  let [short, long] = [
+    walkA.size <= walkB.size ? walkA : walkB,
+    walkA.size > walkB.size ? walkA : walkB
+  ]
+  let longDex = Array.from(long.values())
+  let shortDex = Array.from(short.values())
+  let meetingPoint = longDex.find(orbit => short.has(orbit.self))
+  // console.log('meetingPoint', meetingPoint)
+  return (
+    longDex.slice(0, longDex.indexOf(meetingPoint)).length +
+    shortDex.slice(0, shortDex.indexOf(meetingPoint)).length
+  )
+}
+
+function traceUp(graph, orbit) {
+  return orbit.self === 'COM' ? orbit : graph.get(orbit.parent)
 }
 
 function createOrbitGraph(table) {
   let orbits = table.reduce((map, [parent, self]) => {
-    // console.log('preparing', parent, self)
-
     let orbit = map.get(self) || { parent, self, children: [] }
     orbit.parent = parent
     // console.log('setting', self, orbit)
@@ -102,6 +110,25 @@ K)L`)
   42
 )
 test(run_a(input), 224901)
+test(
+  run_b(
+    prepareInput(`COM)B
+B)C
+C)D
+D)E
+E)F
+B)G
+G)H
+D)I
+E)J
+J)K
+K)L
+K)YOU
+I)SAN`)
+  ),
+  4
+)
+test(run_b(input), 334)
 
 /* Results */
 
