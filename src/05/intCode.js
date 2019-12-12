@@ -19,7 +19,8 @@ const MODE_IMMEDIATE = 1
 module.exports = {
   HALT,
   newIntCode,
-  runIntcode
+  runIntcode,
+  asRange
 }
 
 function newIntCode(inputs, { input = noop, output = noop } = {}) {
